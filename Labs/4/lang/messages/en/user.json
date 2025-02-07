@@ -1,0 +1,7 @@
+{
+  "endpointInvalidMsg": "Endpoint not found.",
+  "getReqInvalidMsg": "Invalid GET request. Please provide a word.",
+  "getWordNotFoundMsg": "Request # %NUMREQ, word '%WORD' not found!",
+  "postReqInvalidMsg": "Invalid request. Please provide a word and a definition.",
+  "postWordExistsMsg": "Warning! Word '%WORD' already exists."
+}
