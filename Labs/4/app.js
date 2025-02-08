@@ -81,46 +81,64 @@ class Server {
     let body = "";
     req.on("data", (chunk) => {
       body += chunk.toString();
+      console.log("Received chunk: ", chunk.toString());
     });
 
     req.on("end", () => {
-      const params = new URLSearchParams(body);
-      const word = params.get("word");
-      const definition = params.get("definition");
+      console.log("Complete request body: ", body);
+      try {
+        const params = new URLSearchParams(body);
+        const word = params.get("word");
+        const definition = params.get("definition");
 
-      if (!word || !definition) {
-        res.writeHead(400, { "Content-Type": "text/plain" });
-        res.end(messages.postReqInvalidMsg);
-        return;
+        if (!word || !definition) {
+          res.writeHead(400, { "Content-Type": "text/plain" });
+          console.error("Error: Missing word or definition");
+          res.end(messages.postReqInvalidMsg);
+          return;
+        }
+
+        if (this.dictionary.find((entry) => entry.word === word)) {
+          res.writeHead(400, { "Content-Type": "text/plain" });
+          const msg = messages.postWordExistsMsg.replace("%WORD", word);
+          console.error(`Error: Word '${word}' already exists`);
+          res.end(msg);
+          return;
+        }
+
+        this.dictionary.push({ word, definition });
+        this.dictionary.sort((a, b) => a.word.localeCompare(b.word));
+        console.log(`Adding word: ${word}, definition: ${definition}`);
+
+        FileHandler.write(
+          this.dictionaryFilePath,
+          JSON.stringify(this.dictionary, null, 2)
+        );
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            numReq: this.numberOfRequests,
+            date: new Date().toDateString().split(" ").slice(1, 3).join(" "),
+            totalWords: this.dictionary.length,
+            word: word,
+            definition: definition,
+          })
+        );
+      } catch (err) {
+        console.error("Error processing POST request: ", err);
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end("Internal Server Error");
       }
+    });
 
-      if (this.dictionary.find((definition) => definition.word === word)) {
-        res.writeHead(400, { "Content-Type": "text/plain" });
-        const msg = messages.postWordExistsMsg.replace("%WORD", word);
-        res.end(msg);
-        return;
-      }
-
-      this.dictionary.push({ word, definition });
-      this.dictionary.sort((a, b) => a.word.localeCompare(b.word));
-      FileHandler.write(
-        this.dictionaryFilePath,
-        JSON.stringify(this.dictionary)
-      );
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          numReq: this.numberOfRequests,
-          date: new Date().toDateString().split(" ").slice(1, 3).join(" "),
-          totalWords: this.dictionary.length,
-          word: word,
-          definition: definition,
-        })
-      );
+    req.on("error", (err) => {
+      console.error("Error with incoming request: ", err);
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end("Internal Server Error");
     });
   }
 }
 
-// Start the server
 const server = new Server(8080, "./dictionary.json");
 server.start();
