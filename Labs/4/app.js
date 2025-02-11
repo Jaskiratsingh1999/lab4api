@@ -119,7 +119,7 @@ class Server {
         res.end(
           JSON.stringify({
             numReq: this.numberOfRequests,
-            date: new Date().toDateString().split(" ").slice(1, 3).join(" "),
+            date: new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", year: "numeric" }),
             totalWords: this.dictionary.length,
             word: word,
             definition: definition,
